@@ -1,4 +1,4 @@
-### Name of the Extinsion
+### WebPlayer UI Remover
 
 This Extension removes the WebPlayer UI for specific Streaming Services to ensure an undisturbed viewer experience.
 
