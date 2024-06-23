@@ -5,5 +5,9 @@
 	"main": "./src/removeui.js",
 	"scripts": {},
 	"author": "m-grohs",
-	"license": "MIT"
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/m-grohs/WPUIREM.git"
+	}
 }
