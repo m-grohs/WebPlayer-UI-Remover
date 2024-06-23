@@ -18,7 +18,7 @@ Simply press the Extension Action Button on the stream to delete the WebPlayer U
 
 #### How to add to the Browser
 
-Download the [Release]() for your Browser. [^1]
+Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Browser and unzip it. [^1]
 
 -   Firefox
 
