@@ -1,0 +1,9 @@
+{
+	"name": "webplayeruiremover",
+	"version": "0.2.5",
+	"description": "Extension for Removing certain WebPlayer UIs",
+	"main": "./src/removeui.js",
+	"scripts": {},
+	"author": "m-grohs",
+	"license": "MIT"
+}
