@@ -18,9 +18,15 @@ Simply press the Extension Action Button on the stream to delete the WebPlayer U
 
 #### How to add to the Browser
 
-Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Browser and unzip it. [^1]
+Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Browser.
 
--   Firefox
+-   Firefox (\*.xpi)
+
+    ```
+    This File will directly install the Extension into Firefox
+    ```
+
+-   Firefox (\*.zip)
 
     ```
     Open Add-ons and Themes
@@ -52,7 +58,7 @@ Firefox:
 
 -   FF does not support Service Worker and still uses Background Scripts
 
-```
+```json
 "background": {
 	"scripts": ["./bg.js"]
 },
@@ -60,7 +66,7 @@ Firefox:
 
 -   for a manifest v3 extension an ID is essential for signing.
 
-```
+```json
 "browser_specific_settings": {
 	"gecko": {
 		"id": "UNIQUE_IDENTIFIER"
@@ -72,7 +78,7 @@ Chrome:
 
 -   uses Service Worker in v3
 
-```
+```json
 "background": {
 	"service_worker": "./service_worker.js",
 	"type": "module"
