@@ -27,8 +27,14 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 				document.querySelector('.webPlayerUIContainer').remove();
 			}
+
+			if (origin.includes('disneyplus')) {
+				// As does Disney
+				console.log('on disney');
+				document.querySelector('.btm-media-overlays-container').remove();
+			}
 		}
 	} catch (err) {
-		console.log(err);
+		if (err) throw err;
 	}
 });

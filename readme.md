@@ -6,6 +6,7 @@ This Extension removes the WebPlayer UI for specific Streaming Services to ensur
 
 -   Amazon
 -   Netflix
+-   Disney+
 
 ---
 
