@@ -1,8 +1,8 @@
-### WebPlayer UI Remover
+## WebPlayer UI Remover
 
 This Extension removes the WebPlayer UI for specific Streaming Services to ensure an undisturbed viewer experience.
 
-#### Currently Supporting:
+### Currently Supporting:
 
 -   Amazon
 -   Netflix
@@ -10,16 +10,16 @@ This Extension removes the WebPlayer UI for specific Streaming Services to ensur
 
 ---
 
-#### How to use
+### How to use
 
 Simply press the Extension Action Button on the stream to delete the WebPlayer UI elements.
 (You need to reload the Site to reset)
 
 ---
 
-#### How to add to the Browser
+### How to add to the Browser
 
-Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Browser.
+Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Browser. [^1]
 
 -   Firefox (\*.xpi)
 
@@ -51,7 +51,7 @@ No other Browser support available atm (might work on Edge but is untested).
 
 ---
 
-#### Notes
+### Notes
 
 There are some differences between Firefox and Chrome in the manifest.json [^2]
 
@@ -77,7 +77,7 @@ Firefox:
 
 Chrome:
 
--   uses Service Worker in v3
+-   uses Service Worker in manifest v3
 
 ```json
 "background": {
@@ -88,7 +88,7 @@ Chrome:
 
 ---
 
-#### [LICENSE]()
+### [LICENSE]()
 
 [^1]: There is no Published Version in any Web Store nor is it planned at this point in time.
 [^2]: On very rare occasions FF none persistance scripts like this one can fail to "wake up". Refresh the Browser if that happens.
