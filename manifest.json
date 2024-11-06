@@ -1,23 +1,17 @@
 {
 	"manifest_version": 3,
 	"name": "WebPlayer UI Remover",
-	"version": "0.3.2",
-	"description": "One Click Extension for removing WebPlayer UIs of specific Streaming Sites for an undisturbed experience",
+	"version": "0.4.0",
+	"description": "One Click Extension for removing WebPlayer UIs of specific Streaming Sites for an undisturbed Viewer Experience",
 	"action": {
 		"default_title": "WebPlayer UI Remover"
 	},
 	"icons": {
 		"512": "./src/icon/wpuirem.png"
 	},
-	"content_scripts": [
-		{
-			"matches": ["*://*.amazon.de/*", "*://*.netflix.com/*", "*://*.disneyplus.com/*"],
-			"js": ["./src/wpuirem.js"]
-		}
-	],
 	"background": {
 		"service_worker": "./src/bg.js",
 		"type": "module"
 	},
-	"permissions": ["tabs"]
+	"permissions": ["activeTab", "scripting"]
 }
