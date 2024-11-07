@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
 	"name": "WebPlayer UI Remover",
-	"version": "0.3.2",
-	"description": "One Click Extension for removing WebPlayer UIs of specific Streaming Sites for an undisturbed experience",
+	"version": "0.4.0",
+	"description": "One Click Extension for removing WebPlayer UIs of specific Streaming Sites for an undisturbed Viewer Experience",
 	"action": {
 		"default_title": "WebPlayer UI Remover"
 	},
@@ -16,8 +16,13 @@
 		}
 	],
 	"background": {
-		"service_worker": "./src/bg.js",
+		"scripts": ["./src/bg.js"],
 		"type": "module"
 	},
-	"permissions": ["tabs"]
+	"permissions": ["activeTab", "scripting"],
+	"browser_specific_settings": {
+		"gecko": {
+			"id": "{96b7edf5-6cde-4584-80b1-dce853361ebe}"
+		}
+	}
 }

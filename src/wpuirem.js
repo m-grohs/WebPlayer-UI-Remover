@@ -1,40 +1,38 @@
 chrome.runtime.onMessage.addListener((msg) => {
-	try {
-		if (msg.cmd === 'delete') {
-			if (origin.includes('netflix')) {
-				// class names for UI Elemente @ netflix
-				// Base UI @ default-ltr-cache-1m81c36
-				// Back Arrow @ default-ltr-cache-1npqywr
-				// Ads Overlay @ default-ltr-cache-1btbqeg
-				// Credits+Next Button @ default-ltr-cache-18ezbm2
+	const SUPPORTED_SITES = ['amazon', 'disneyplus', 'netflix'];
 
-				document.head.append(
-					Object.assign(document.createElement('style'), {
-						type: 'text/css',
-						textContent: `
-						.default-ltr-cache-1m81c36,
-						.default-ltr-cache-1npqywr,
-						.default-ltr-cache-1btbqeg,
-						.default-ltr-cache-18ezbm2 {
-							visibility: hidden !important;
-						}`
-					})
-				);
+	if (msg.cmd === 'delete') {
+		if (SUPPORTED_SITES.some((site) => origin.includes(site))) {
+			// AMAZON
+			if (origin.includes(SUPPORTED_SITES[0])) {
+				const container = document.querySelector('.webPlayerUIContainer');
+
+				if (container) container.remove();
 			}
 
-			if (origin.includes('amazon')) {
-				// Amazon makes it simple with having one Container Class for their UI
+			// DISNEY+
+			if (origin.includes(SUPPORTED_SITES[1])) {
+				const container = document.querySelector('.btm-media-overlays-container');
 
-				document.querySelector('.webPlayerUIContainer').remove();
+				if (container) container.remove();
 			}
 
-			if (origin.includes('disneyplus')) {
-				// As does Disney
-				console.log('on disney');
-				document.querySelector('.btm-media-overlays-container').remove();
+			// NETFLIX
+			if (origin.includes(SUPPORTED_SITES[2])) {
+				const style = document.createElement('style');
+				style.textContent = `
+				.ltr-1m81c36,
+				.ltr-1npqywr,
+				.ltr-1btbqeg,
+				.ltr-18ezbm2,
+				.ltr-1st24vv,
+				.advisory-container {
+            	visibility: hidden !important;}`;
+
+				document.head.appendChild(style);
 			}
+		} else {
+			console.error('This Site is not supported by the WebPlayer UI Remover Extension!');
 		}
-	} catch (err) {
-		if (err) throw err;
 	}
 });
