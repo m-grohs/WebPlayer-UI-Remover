@@ -1,5 +1,5 @@
 chrome.runtime.onMessage.addListener((msg) => {
-	const SUPPORTED_SITES = ['amazon', 'disneyplus', 'netflix'];
+	const SUPPORTED_SITES = ['amazon', 'disneyplus', 'netflix', 'wowtv'];
 
 	if (msg.cmd === 'delete') {
 		if (SUPPORTED_SITES.some((site) => origin.includes(site))) {
@@ -30,6 +30,13 @@ chrome.runtime.onMessage.addListener((msg) => {
             	visibility: hidden !important;}`;
 
 				document.head.appendChild(style);
+			}
+
+			// WOWTV
+			if (origin.includes(SUPPORTED_SITES[3])) {
+				const container = document.querySelector('[data-test-id="video-player-controls"');
+
+				if (container) container.remove();
 			}
 		} else {
 			console.error('This Site is not supported by the WebPlayer UI Remover Extension!');
