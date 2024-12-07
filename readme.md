@@ -7,6 +7,7 @@ This Extension removes the WebPlayer UI for specific Streaming Services to ensur
 -   Amazon
 -   Netflix
 -   Disney+
+-   Wowtv.de
 
 ---
 
@@ -53,7 +54,7 @@ No other Browser support available atm (might work on Edge but is untested).
 
 ### Notes
 
-There are some differences between Firefox and Chrome in the manifest.json [^2]
+There are some differences between Firefox and Chrome in the manifest.json.
 
 Firefox:
 
@@ -91,4 +92,3 @@ Chrome:
 ### [LICENSE]()
 
 [^1]: There is no Published Version in any Web Store nor is it planned at this point in time.
-[^2]: On very rare occasions FF none persistance scripts like this one can fail to "wake up". Refresh the Browser if that happens.
