@@ -9,12 +9,6 @@
 	"icons": {
 		"512": "./src/icon/wpuirem.png"
 	},
-	"content_scripts": [
-		{
-			"matches": ["*://*.amazon.de/*", "*://*.netflix.com/*", "*://*.disneyplus.com/*", "*://*.wowtv.de/*"],
-			"js": ["./src/wpuirem.js"]
-		}
-	],
 	"background": {
 		"scripts": ["./src/bg.js"],
 		"type": "module"

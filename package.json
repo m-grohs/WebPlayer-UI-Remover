@@ -2,7 +2,7 @@
 	"name": "web-player-ui-remover",
 	"version": "0.5.0",
 	"description": "One Click Extension for removing WebPlayer UIs of specific Streaming Sites for an undisturbed experience",
-	"main": "./src/wpuirem.js",
+	"main": "./src/bg.js",
 	"scripts": {},
 	"author": "m-grohs",
 	"license": "MIT",

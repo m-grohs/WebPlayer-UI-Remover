@@ -1,66 +1,74 @@
 chrome.action.onClicked.addListener((tab) => {
 	chrome.scripting.executeScript({
 		target: { tabId: tab.id },
-		function: hideUI
+		files: ['./src/hideUI.js']
 	});
 });
 
-function hideUI() {
-	const SUPPORTED_SITES = ['amazon', 'disneyplus', 'netflix', 'wowtv'];
+// chrome.action.onClicked.addListener((tab) => {
+// 	chrome.scripting.executeScript({
+// 		target: { tabId: tab.id },
+// 		function: hideUI
+// 	});
+// });
 
-	if (SUPPORTED_SITES.some((site) => origin.includes(site))) {
-		// AMAZON
-		if (origin.includes(SUPPORTED_SITES[0])) {
-			const container = document.querySelector('.f1bwtfkz');
+// function hideUI() {
+// 	const SUPPORTED_SITES = ['amazon', 'disneyplus', 'netflix', 'wowtv'];
+// 	console.log('WebPlayer UI Remover Extension Activated!');
 
-			if (container) container.remove();
+// 	if (SUPPORTED_SITES.some((site) => origin.includes(site))) {
+// 		// AMAZON
+// 		if (origin.includes(SUPPORTED_SITES[0])) {
+// 			const container = document.querySelector('.f1bwtfkz');
 
-			// This works also but couldnt get rid of Ratings for now.
-			// To revisit later.
+// 			if (container) container.remove();
 
-			// const style = document.createElement('style');
-			// style.textContent = `
-			// 	.webPlayerUIContainer {
-			// 		visibility: hidden !important; }
+// 			// This works also but couldnt get rid of Ratings for now.
+// 			// To revisit later.
 
-			// 	.webPlayerUIContainer .atvwebplayersdk-captions-overlay {
-			// 		visibility: visible !important; }
+// 			// const style = document.createElement('style');
+// 			// style.textContent = `
+// 			// 	.webPlayerUIContainer {
+// 			// 		visibility: hidden !important; }
 
-			// 	.f11xjbzd {
-			// 		display: none !important; }`;
+// 			// 	.webPlayerUIContainer .atvwebplayersdk-captions-overlay {
+// 			// 		visibility: visible !important; }
 
-			// document.head.appendChild(style);
-		}
+// 			// 	.f11xjbzd {
+// 			// 		display: none !important; }`;
 
-		// DISNEY+
-		if (origin.includes(SUPPORTED_SITES[1])) {
-			const container = document.querySelector('.btm-media-overlays-container');
+// 			// document.head.appendChild(style);
+// 		}
 
-			if (container) container.remove();
-		}
+// 		// DISNEY+
+// 		if (origin.includes(SUPPORTED_SITES[1])) {
+// 			const container = document.querySelector('.btm-media-overlays-container');
 
-		// NETFLIX
-		if (origin.includes(SUPPORTED_SITES[2])) {
-			const style = document.createElement('style');
-			style.textContent = `
-				html body .default-ltr-iqcdef-cache-gpipej,
-					.playback-notification,
-					.watch-video--advisories-container,
-					.watch-video--evidence-overlay-container,
-					.SeamlessControls--container {
-						display: none !important;
-						visibility: hidden !important; }`;
+// 			if (container) container.remove();
+// 		}
 
-			document.head.appendChild(style);
-		}
+// 		// NETFLIX
+// 		if (origin.includes(SUPPORTED_SITES[2])) {
+// 			const style = document.createElement('style');
+// 			style.textContent = `
+// 				html body .default-ltr-iqcdef-cache-gpipej,
+// 					.playback-notification,
+// 					.watch-video--advisories-container,
+// 					.watch-video--evidence-overlay-container,
+// 					.SeamlessControls--container {
+// 						display: none !important;
+// 						visibility: hidden !important; }`;
 
-		// WOWTV
-		if (origin.includes(SUPPORTED_SITES[3])) {
-			const container = document.querySelector('[data-test-id="video-player-controls"');
+// 			document.head.appendChild(style);
+// 		}
 
-			if (container) container.remove();
-		}
-	} else {
-		console.error('This Site is not supported by the WebPlayer UI Remover Extension!');
-	}
-}
+// 		// WOWTV
+// 		if (origin.includes(SUPPORTED_SITES[3])) {
+// 			const container = document.querySelector('[data-test-id="video-player-controls"');
+
+// 			if (container) container.remove();
+// 		}
+// 	} else {
+// 		console.error('This Site is not supported by the WebPlayer UI Remover Extension!');
+// 	}
+// }
