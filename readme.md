@@ -2,6 +2,11 @@
 
 This Extension removes the WebPlayer UI for specific Streaming Services to ensure an undisturbed viewer experience.
 
+Occasionally Streaming Sites Re-Obfuscate their Code which can lead to breaking this Extension on them. Fixes for that will roll out the moment i can get to them.
+
+As of September 2025
+Extension Status: Working
+
 ### Currently Supporting:
 
 -   Amazon
@@ -86,6 +91,9 @@ Chrome:
 	"type": "module"
 }
 ```
+
+Git Clone: 
+-   rename the manifest-chrome.json or manifest-firefox.json to manifest.json depending on your Browser.
 
 ---
 

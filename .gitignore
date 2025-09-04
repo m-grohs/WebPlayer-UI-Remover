@@ -1,0 +1,7 @@
+package-lock.json
+node_modules
+old.dump
+releases
+misc.md
+TODO
+manifest.json

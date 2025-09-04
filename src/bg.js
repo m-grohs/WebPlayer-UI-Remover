@@ -11,9 +11,25 @@ function hideUI() {
 	if (SUPPORTED_SITES.some((site) => origin.includes(site))) {
 		// AMAZON
 		if (origin.includes(SUPPORTED_SITES[0])) {
-			const container = document.querySelector('.webPlayerUIContainer');
+			const container = document.querySelector('.f1bwtfkz');
 
 			if (container) container.remove();
+
+			// This works also but couldnt get rid of Ratings for now.
+			// To revisit later.
+
+			// const style = document.createElement('style');
+			// style.textContent = `
+			// 	.webPlayerUIContainer {
+			// 		visibility: hidden !important; }
+
+			// 	.webPlayerUIContainer .atvwebplayersdk-captions-overlay {
+			// 		visibility: visible !important; }
+
+			// 	.f11xjbzd {
+			// 		display: none !important; }`;
+
+			// document.head.appendChild(style);
 		}
 
 		// DISNEY+
@@ -27,13 +43,13 @@ function hideUI() {
 		if (origin.includes(SUPPORTED_SITES[2])) {
 			const style = document.createElement('style');
 			style.textContent = `
-        		.ltr-1m81c36,
-				.ltr-1npqywr,
-				.ltr-1btbqeg,
-				.ltr-18ezbm2,
-				.ltr-1st24vv,
-				.advisory-container {
-            	visibility: hidden !important;}`;
+				html body .default-ltr-iqcdef-cache-gpipej,
+					.playback-notification,
+					.watch-video--advisories-container,
+					.watch-video--evidence-overlay-container,
+					.SeamlessControls--container {
+						display: none !important;
+						visibility: hidden !important; }`;
 
 			document.head.appendChild(style);
 		}
