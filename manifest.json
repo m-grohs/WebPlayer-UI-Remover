@@ -10,13 +10,8 @@
 		"512": "./src/icon/wpuirem.png"
 	},
 	"background": {
-		"scripts": ["./src/bg.js"],
+		"service_worker": "./src/bg.js",
 		"type": "module"
 	},
-	"permissions": ["activeTab", "scripting"],
-	"browser_specific_settings": {
-		"gecko": {
-			"id": "{96b7edf5-6cde-4584-80b1-dce853361ebe}"
-		}
-	}
+	"permissions": ["activeTab", "scripting"]
 }
