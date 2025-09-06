@@ -34,8 +34,12 @@ jobs:
       - name: Install tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq zip
+          sudo apt-get install -y jq zip rsync
           npm install --global web-ext
+
+      ##########################
+      # Chrome Build & Zip
+      ##########################
 
       - name: Copy Chrome manifest
         run: cp manifest-chrome.json manifest.json
@@ -61,14 +65,14 @@ jobs:
         run: echo "OVERRIDDEN_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
         id: override-real
 
-      ##########################
-      # Chrome Build & Zip
-      ##########################
+      - name: Debug version
+        run: echo "Using version: ${{ steps.override.outputs.OVERRIDDEN_VERSION }}"
+
       - name: Zip Chrome extension
         run: |
           VERSION="${{ steps.override.outputs.OVERRIDDEN_VERSION }}"
           mkdir -p build/chrome
-          cp -r * build/chrome/
+          rsync -av --exclude 'build' ./ build/chrome/
           cd build/chrome
           zip -r "chrome-${VERSION}.zip" ./*
           mv *.zip ../
@@ -76,6 +80,7 @@ jobs:
       ##########################
       # Firefox Build & Sign
       ##########################
+
       - name: Copy Firefox manifest
         run: cp manifest-firefox.json manifest.json
 
@@ -83,7 +88,7 @@ jobs:
         run: |
           VERSION="${{ steps.override.outputs.OVERRIDDEN_VERSION }}"
           mkdir -p build/firefox
-          cp -r * build/firefox/
+          rsync -av --exclude 'build' ./ build/firefox/
           cd build/firefox
           zip -r "firefox-${VERSION}.zip" ./*
           mv *.zip ../
@@ -99,8 +104,15 @@ jobs:
             --channel=listed
 
       ##########################
+      # Debug build folder contents
+      ##########################
+      - name: List build directory recursively
+        run: ls -R build
+
+      ##########################
       # Git Tag (only if real)
       ##########################
+
       - name: Commit and tag release
         if: inputs.dry_run == 'false'
         run: |
@@ -111,8 +123,9 @@ jobs:
           git push origin "v${{ steps.version.outputs.VERSION }}"
 
       ##########################
-      # Changelog and Contribs
+      # Changelog and Contributors
       ##########################
+
       - name: Get last tag
         id: last_tag
         run: |
@@ -122,13 +135,12 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
           if [ -n "${{ steps.last_tag.outputs.LAST_TAG }}" ]; then
-            git log ${{ steps.last_tag.outputs.LAST_TAG }}..HEAD --pretty=format:"- %s"
+            git log ${{ steps.last_tag.outputs.LAST_TAG }}..HEAD --pretty=format:"- %s" > changes.txt
           else
-            git log --pretty=format:"- %s"
-          fi >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+            git log --pretty=format:"- %s" > changes.txt
+          fi
+          echo "::set-output name=CHANGES::$(cat changes.txt)"
 
       - name: List contributors
         id: contributors
@@ -151,8 +163,9 @@ jobs:
           echo "${{ steps.contributors.outputs.CONTRIBUTORS }}"
 
       ##########################
-      # Create Real GitHub Release
+      # Create GitHub Release
       ##########################
+
       - name: Create GitHub Release
         if: inputs.dry_run == 'false'
         uses: softprops/action-gh-release@v1
@@ -165,17 +178,18 @@ jobs:
 
             **Contributors:** ${{ steps.contributors.outputs.CONTRIBUTORS }}
           files: |
-            build/*.zip
+            build/**/*.zip
             build/signed/*.xpi
 
       ##########################
-      # Upload artifacts (dry run)
+      # Upload artifacts (dry run or real)
       ##########################
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: extension-build
           path: |
-            build/*.zip
-            build/signed/*.xpi
+            build/**/*.zip
+            build/**/*.xpi
