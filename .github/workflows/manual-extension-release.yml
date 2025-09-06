@@ -24,7 +24,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed for changelog.
+          fetch-depth: 0
 
       - name: Set up Git
         run: |
@@ -37,67 +37,67 @@ jobs:
           sudo apt-get install -y jq zip rsync
           npm install --global web-ext
 
-      ##########################
-      # Chrome Build & Zip
-      ##########################
+      ################################
+      # Get and Possibly Override Version
+      ################################
 
-      - name: Copy Chrome manifest
-        run: cp manifest-chrome.json manifest.json
-
-      - name: Extract version from manifest.json
+      - name: Extract version from manifest
         id: version
         run: |
+          cp manifest-chrome.json manifest.json
           VERSION=$(jq -r '.version' manifest.json)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Override version in dry run
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        id: override
+      - name: Decide on release version
+        id: resolve_version
         run: |
-          VERSION=$(jq -r '.version' manifest.json)
-          FAKE_VERSION="${VERSION}-test"
-          jq --arg v "$FAKE_VERSION" '.version = $v' manifest.json > manifest.json.tmp
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "RELEASE_VERSION=${{ steps.version.outputs.VERSION }}-test" >> $GITHUB_OUTPUT
+          else
+            echo "RELEASE_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Apply resolved version to manifest.json
+        run: |
+          jq --arg v "${{ steps.resolve_version.outputs.RELEASE_VERSION }}" '.version = $v' manifest.json > manifest.json.tmp
           mv manifest.json.tmp manifest.json
-          echo "RELEASE_VERSION=$FAKE_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Use real version if not overridden
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        id: override-real
+      - name: Show resolved version
+        run: echo "🔖 RELEASE_VERSION=${{ steps.resolve_version.outputs.RELEASE_VERSION }}"
+
+      ################################
+      # Chrome ZIP
+      ################################
+
+      - name: Prepare Chrome ZIP
         run: |
-          echo "RELEASE_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
-
-      - name: Debug version
-        run: echo "Using version: ${{ steps.override.outputs.RELEASE_VERSION }}"
-
-      - name: Zip Chrome extension
-        run: |
-          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
+          VERSION="${{ steps.resolve_version.outputs.RELEASE_VERSION }}"
           mkdir -p build/chrome
           rsync -av --exclude 'build' ./ build/chrome/
           cd build/chrome
           zip -r "chrome-${VERSION}.zip" ./*
-          mv *.zip ../
+          mv "chrome-${VERSION}.zip" ../
 
-      ##########################
-      # Firefox Build & Sign
-      ##########################
+      ################################
+      # Firefox ZIP + XPI (signed)
+      ################################
 
       - name: Copy Firefox manifest
         run: cp manifest-firefox.json manifest.json
 
-      - name: Zip Firefox extension
+      - name: Prepare Firefox ZIP
         run: |
-          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
+          VERSION="${{ steps.resolve_version.outputs.RELEASE_VERSION }}"
           mkdir -p build/firefox
           rsync -av --exclude 'build' ./ build/firefox/
           cd build/firefox
           zip -r "firefox-${VERSION}.zip" ./*
-          mv *.zip ../
+          mv "firefox-${VERSION}.zip" ../
 
-      - name: Sign Firefox extension (skip if dry run or no API keys)
-        if: ${{ github.event.inputs.dry_run != 'true' && secrets.AMO_API_KEY != '' && secrets.AMO_API_SECRET != '' }}
+      - name: Sign Firefox extension
+        if: github.event.inputs.dry_run != 'true' && env.FIREFOX_API_KEY != '' && env.FIREFOX_API_SECRET != ''
         run: |
-          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
+          VERSION="${{ steps.resolve_version.outputs.RELEASE_VERSION }}"
           web-ext sign \
             --source-dir=build/firefox \
             --api-key="$FIREFOX_API_KEY" \
@@ -105,18 +105,19 @@ jobs:
             --artifacts-dir=build/signed \
             --channel=listed
 
-      ##########################
-      # Debug build folder contents
-      ##########################
-      - name: List build directory recursively
+      ################################
+      # Debugging Build Outputs
+      ################################
+
+      - name: List build directory
         run: ls -R build
 
-      ##########################
-      # Git Tag (only if real)
-      ##########################
+      ################################
+      # Git Tag (real release only)
+      ################################
 
       - name: Commit and tag release
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+        if: github.event.inputs.dry_run == 'false'
         run: |
           git add manifest.json
           git commit -m "chore: release v${{ steps.version.outputs.VERSION }}" || echo "Nothing to commit"
@@ -124,14 +125,14 @@ jobs:
           git push origin HEAD
           git push origin "v${{ steps.version.outputs.VERSION }}"
 
-      ##########################
-      # Changelog and Contributors
-      ##########################
+      ################################
+      # Changelog & Contributors
+      ################################
 
       - name: Get last tag
         id: last_tag
         run: |
-          TAG=$(git tag --sort=-creatordate | grep -v "${{ steps.override.outputs.RELEASE_VERSION }}" | head -n 1)
+          TAG=$(git tag --sort=-creatordate | grep -v "${{ steps.resolve_version.outputs.RELEASE_VERSION }}" | head -n 1)
           echo "LAST_TAG=$TAG" >> $GITHUB_OUTPUT
 
       - name: Generate changelog
@@ -142,7 +143,9 @@ jobs:
           else
             git log --pretty=format:"- %s" > changes.txt
           fi
-          echo "CHANGES=$(cat changes.txt)" >> $GITHUB_OUTPUT
+          echo "CHANGES<<EOF" >> $GITHUB_OUTPUT
+          cat changes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: List contributors
         id: contributors
@@ -156,8 +159,7 @@ jobs:
 
       - name: Print release info (dry run simulation)
         run: |
-          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
-          echo "📝 Simulated Release v${VERSION}"
+          echo "📝 Simulated Release v${{ steps.resolve_version.outputs.RELEASE_VERSION }}"
           echo ""
           echo "🔄 Changes:"
           echo "${{ steps.changelog.outputs.CHANGES }}"
@@ -165,12 +167,12 @@ jobs:
           echo "👥 Contributors:"
           echo "${{ steps.contributors.outputs.CONTRIBUTORS }}"
 
-      ##########################
-      # Create GitHub Release
-      ##########################
+      ################################
+      # Create GitHub Release (real only)
+      ################################
 
       - name: Create GitHub Release
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+        if: github.event.inputs.dry_run == 'false'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
@@ -184,9 +186,9 @@ jobs:
             build/**/*.zip
             build/signed/*.xpi
 
-      ##########################
-      # Upload artifacts (dry run or real)
-      ##########################
+      ################################
+      # Upload artifacts (always)
+      ################################
 
       - name: Upload artifacts
         if: always()
