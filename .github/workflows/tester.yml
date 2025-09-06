@@ -74,7 +74,7 @@ jobs:
         run: |
           npm install -g web-ext@latest
           cd dist/firefox
-          web-ext sign --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET"
+          web-ext sign --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --channel=unlisted
           cp *.xpi ../extension-firefox-signed.xpi
 
 
