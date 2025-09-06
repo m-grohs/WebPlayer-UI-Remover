@@ -78,10 +78,18 @@ jobs:
             exit 2
           fi
           cd dist/firefox
+          echo "Which web-ext on PATH: $(command -v web-ext || echo 'none')"
           npx --yes web-ext@latest --version
-          # Try equals-form (some parsers prefer it), disable config discovery to avoid local config interference
-          npx --yes web-ext@latest sign --channel=unlisted --api-key "$AMO_API_KEY" --api-secret "$AMO_API_SECRET" --source-dir . --no-config-discovery --verbose \
-            || npx --yes web-ext@latest sign --channel unlisted --api-key "$AMO_API_KEY" --api-secret "$AMO_API_SECRET" --source-dir . --no-config-discovery --verbose
+          # sign: pass channel as separate arg, disable config discovery, avoid --version=...
+          npx --yes web-ext@latest sign \
+            --channel unlisted \
+            --api-key "$AMO_API_KEY" \
+            --api-secret "$AMO_API_SECRET" \
+            --source-dir . \
+            --artifacts-dir . \
+            --no-config-discovery \
+            --no-input \
+            --verbose
           cp *.xpi ../extension-firefox-signed.xpi
 
 
