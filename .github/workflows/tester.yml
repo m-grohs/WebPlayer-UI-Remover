@@ -67,41 +67,37 @@ jobs:
           zip -r ../extension-firefox.zip .
 
       # SIGNING
-- name: Sign Firefox extension
-  env:
-    AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
-    AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
-  run: |
-    set -x
-    echo "AMO key length: ${#AMO_API_KEY}, secret length: ${#AMO_API_SECRET}"
-    if [ -z "$AMO_API_KEY" ] || [ -z "$AMO_API_SECRET" ]; then
-      echo "ERROR: AMO secrets are empty" >&2
-      exit 2
-    fi
+      - name: Sign Firefox extension
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+        run: |
+          set -x  # Enable debug output
 
-    cd dist/firefox
+          echo "AMO key length: ${#AMO_API_KEY}, secret length: ${#AMO_API_SECRET}"
+          if [ -z "$AMO_API_KEY" ] || [ -z "$AMO_API_SECRET" ]; then
+            echo "ERROR: AMO secrets are empty" >&2
+            exit 2
+          fi
 
-    echo "Running web-ext sign with equals sign syntax"
-    npx --yes web-ext@latest sign \
-      --channel=unlisted \
-      --api-key="$AMO_API_KEY" \
-      --api-secret="$AMO_API_SECRET" \
-      --source-dir=. \
-      --no-config-discovery \
-      --verbose || (
-        echo "Retrying with space syntax"
-        npx --yes web-ext@latest sign \
-          --channel=unlisted \
-          --api-key "$AMO_API_KEY" \
-          --api-secret "$AMO_API_SECRET" \
-          --source-dir . \
-          --no-config-discovery \
-          --verbose
-      )
+          cd dist/firefox
 
-    cp *.xpi ../extension-firefox-signed.xpi
+          echo "Installing web-ext and checking version..."
+          npx --yes web-ext@latest --version
 
+          echo "Signing Firefox extension..."
+          npx --yes web-ext@latest sign \
+            --channel unlisted \
+            --api-key "$AMO_API_KEY" \
+            --api-secret "$AMO_API_SECRET" \
+            --source-dir . \
+            --artifacts-dir ./web-ext-artifacts \
+            --no-config-discovery \
+            --no-input \
+            --verbose
 
+          # Copy the signed file
+          cp web-ext-artifacts/*.xpi ../extension-firefox-signed.xpi
 
       # GENERATE CHANGELOG
       - name: Generate changelog since last release
@@ -146,4 +142,3 @@ jobs:
             dist/extension-chrome.zip
             dist/extension-firefox.zip
             dist/extension-firefox-signed.xpi
-
