@@ -74,9 +74,9 @@ jobs:
         run: |
           npm install -g web-ext@latest
           cd dist/firefox
-          web-ext sign --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --version=${{ steps.names.outputs.FIREFOX_SIGN_VERSION }} --source-dir=. --artifacts-dir=.
-          cd ..
-          cp firefox/*.xpi extension-firefox-signed.xpi
+          web-ext sign --channel=unlisted --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --source-dir=.
+          cp *.xpi ../extension-firefox-signed.xpi
+
 
       # GENERATE CHANGELOG
       - name: Generate changelog since last release
