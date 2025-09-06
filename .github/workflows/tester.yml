@@ -72,9 +72,10 @@ jobs:
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
         run: |
+          echo "Key length: ${#AMO_API_KEY}, Secret length: ${#AMO_API_SECRET}"
           npm install -g web-ext@latest
           cd dist/firefox
-          web-ext sign --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --channel=unlisted
+          web-ext sign --channel=unlisted --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --channel=unlisted
           cp *.xpi ../extension-firefox-signed.xpi
 
 
