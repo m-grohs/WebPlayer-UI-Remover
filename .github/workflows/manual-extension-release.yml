@@ -58,30 +58,20 @@ jobs:
           FAKE_VERSION="${VERSION}-test"
           jq --arg v "$FAKE_VERSION" '.version = $v' manifest.json > manifest.json.tmp
           mv manifest.json.tmp manifest.json
-          echo "OVERRIDDEN_VERSION=$FAKE_VERSION" >> $GITHUB_OUTPUT
+          echo "RELEASE_VERSION=$FAKE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Use real version if not overridden
         if: ${{ github.event.inputs.dry_run != 'true' }}
         id: override-real
         run: |
-          echo "OVERRIDDEN_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
-
-      # --- FIXED LOGIC STARTS HERE ---
-      - name: Set version variable
-        id: set_version
-        run: |
-          if [ -n "${{ steps.override.outputs.OVERRIDDEN_VERSION }}" ]; then
-            echo "VERSION=${{ steps.override.outputs.OVERRIDDEN_VERSION }}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=${{ steps.override-real.outputs.OVERRIDDEN_VERSION }}" >> $GITHUB_OUTPUT
-          fi
+          echo "RELEASE_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Debug version
-        run: echo "Using version: ${{ steps.set_version.outputs.VERSION }}"
+        run: echo "Using version: ${{ steps.override.outputs.RELEASE_VERSION }}"
 
       - name: Zip Chrome extension
         run: |
-          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
           mkdir -p build/chrome
           rsync -av --exclude 'build' ./ build/chrome/
           cd build/chrome
@@ -97,7 +87,7 @@ jobs:
 
       - name: Zip Firefox extension
         run: |
-          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
           mkdir -p build/firefox
           rsync -av --exclude 'build' ./ build/firefox/
           cd build/firefox
@@ -107,7 +97,7 @@ jobs:
       - name: Sign Firefox extension (skip if dry run or no API keys)
         if: ${{ github.event.inputs.dry_run != 'true' && secrets.AMO_API_KEY != '' && secrets.AMO_API_SECRET != '' }}
         run: |
-          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
           web-ext sign \
             --source-dir=build/firefox \
             --api-key="$FIREFOX_API_KEY" \
@@ -124,6 +114,7 @@ jobs:
       ##########################
       # Git Tag (only if real)
       ##########################
+
       - name: Commit and tag release
         if: ${{ github.event.inputs.dry_run == 'false' }}
         run: |
@@ -136,10 +127,11 @@ jobs:
       ##########################
       # Changelog and Contributors
       ##########################
+
       - name: Get last tag
         id: last_tag
         run: |
-          TAG=$(git tag --sort=-creatordate | grep -v "${{ steps.set_version.outputs.VERSION }}" | head -n 1)
+          TAG=$(git tag --sort=-creatordate | grep -v "${{ steps.override.outputs.RELEASE_VERSION }}" | head -n 1)
           echo "LAST_TAG=$TAG" >> $GITHUB_OUTPUT
 
       - name: Generate changelog
@@ -164,7 +156,7 @@ jobs:
 
       - name: Print release info (dry run simulation)
         run: |
-          VERSION="${{ steps.set_version.outputs.VERSION }}"
+          VERSION="${{ steps.override.outputs.RELEASE_VERSION }}"
           echo "📝 Simulated Release v${VERSION}"
           echo ""
           echo "🔄 Changes:"
@@ -176,6 +168,7 @@ jobs:
       ##########################
       # Create GitHub Release
       ##########################
+
       - name: Create GitHub Release
         if: ${{ github.event.inputs.dry_run == 'false' }}
         uses: softprops/action-gh-release@v1
@@ -194,6 +187,7 @@ jobs:
       ##########################
       # Upload artifacts (dry run or real)
       ##########################
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
