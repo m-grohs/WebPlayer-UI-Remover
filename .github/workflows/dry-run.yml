@@ -1,0 +1,124 @@
+name: Release Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no actual GitHub release, signs with temp version)'
+        required: false
+        default: 'false'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Extract manifest version
+        id: manifest-version
+        run: |
+          jq -r .version manifest-chrome.json > .manifest-version.txt
+          VERSION=$(cat .manifest-version.txt)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Prepare filenames
+        id: names
+        run: |
+          VERSION=${{ steps.manifest-version.outputs.VERSION }}
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            TAG="v${VERSION}-temp"
+            FIREFOX_SIGN_VERSION="${VERSION}-temp"
+          else
+            TAG="v${VERSION}"
+            FIREFOX_SIGN_VERSION="${VERSION}"
+          fi
+          echo "RELEASE_TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "FIREFOX_SIGN_VERSION=$FIREFOX_SIGN_VERSION" >> $GITHUB_OUTPUT
+
+      # CHROME ZIP
+      - name: Chrome build folder
+        run: |
+          cp manifest-chrome.json manifest.json
+          mkdir -p dist/chrome
+          rsync -av --exclude manifest-chrome.json --exclude manifest-firefox.json . dist/chrome/
+      - name: Zip Chrome extension
+        run: |
+          cd dist/chrome
+          zip -r ../extension-chrome.zip .
+
+      # FIREFOX ZIP
+      - name: Firefox build folder
+        run: |
+          cp manifest-firefox.json manifest.json
+          mkdir -p dist/firefox
+          rsync -av --exclude manifest-firefox.json --exclude manifest-chrome.json . dist/firefox/
+      - name: Zip Firefox extension
+        run: |
+          cd dist/firefox
+          zip -r ../extension-firefox.zip .
+
+      # SIGNING
+      - name: Sign Firefox extension
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+        run: |
+          npm install -g web-ext@latest
+          cd dist/firefox
+          web-ext sign --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --version=${{ steps.names.outputs.FIREFOX_SIGN_VERSION }} --source-dir=. --artifacts-dir=.
+          cd ..
+          cp firefox/*.xpi extension-firefox-signed.xpi
+
+      # GENERATE CHANGELOG
+      - name: Generate changelog since last release
+        id: changelog
+        run: |
+          git fetch --tags
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo '')
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
+          else
+            RANGE=""
+          fi
+          echo "Changelog for release ${{ steps.names.outputs.RELEASE_TAG }}" > release-notes.md
+          if [ -n "$RANGE" ]; then
+            git log $RANGE --pretty=format:"* %s (%an)" --no-merges >> release-notes.md
+          else
+            git log --pretty=format:"* %s (%an)" --no-merges >> release-notes.md
+          fi
+
+      # DRY RUN OUTPUT
+      - name: Dry run summary
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Chrome zip:"
+          ls -lh dist/extension-chrome.zip
+          echo "Firefox zip:"
+          ls -lh dist/extension-firefox.zip
+          echo "Signed Firefox XPI:"
+          ls -lh dist/extension-firefox-signed.xpi
+          echo "Release notes preview:"
+          cat release-notes.md
+
+      # CREATE RELEASE
+      - name: Create Release
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.names.outputs.RELEASE_TAG }}
+          name: ${{ steps.names.outputs.RELEASE_TAG }}
+          body_path: release-notes.md
+          files: |
+            dist/extension-chrome.zip
+            dist/extension-firefox.zip
+            dist/extension-firefox-signed.xpi
+
