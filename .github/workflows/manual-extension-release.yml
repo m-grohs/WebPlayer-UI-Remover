@@ -1,198 +1,124 @@
-name: Manual Extension Release
+name: Release Extension
 
 on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Skip tagging and GitHub release?'
+        description: 'Dry run (no actual GitHub release, signs with temp version)'
         required: false
-        default: 'true'
+        default: 'false'
 
 jobs:
-  release-extension:
-    name: Build and Release Extension
+  build-and-release:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: write  # Needed to push tags & create releases
-
-    env:
-      FIREFOX_API_KEY: ${{ secrets.AMO_API_KEY }}
-      FIREFOX_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0  # Needed for changelog.
+          node-version: '20'
 
-      - name: Set up Git
+      - name: Extract manifest version
+        id: manifest-version
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-      - name: Install tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq zip rsync
-          npm install --global web-ext
-
-      ##########################
-      # Chrome Build & Zip
-      ##########################
-
-      - name: Copy Chrome manifest
-        run: cp manifest-chrome.json manifest.json
-
-      - name: Extract version from manifest.json
-        id: version
-        run: |
-          VERSION=$(jq -r '.version' manifest.json)
+          jq -r .version manifest-chrome.json > .manifest-version.txt
+          VERSION=$(cat .manifest-version.txt)
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Override version in dry run
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        id: override
+      - name: Prepare filenames
+        id: names
         run: |
-          VERSION=$(jq -r '.version' manifest.json)
-          FAKE_VERSION="${VERSION}-test"
-          jq --arg v "$FAKE_VERSION" '.version = $v' manifest.json > manifest.json.tmp
-          mv manifest.json.tmp manifest.json
-          echo "OVERRIDDEN_VERSION=$FAKE_VERSION" >> $GITHUB_OUTPUT
+          VERSION=${{ steps.manifest-version.outputs.VERSION }}
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            TAG="v${VERSION}-temp"
+            FIREFOX_SIGN_VERSION="${VERSION}-temp"
+          else
+            TAG="v${VERSION}"
+            FIREFOX_SIGN_VERSION="${VERSION}"
+          fi
+          echo "RELEASE_TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "FIREFOX_SIGN_VERSION=$FIREFOX_SIGN_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Use real version if not overridden
-        if: ${{ github.event.inputs.dry_run != 'true' }}
-        id: override-real
+      # CHROME ZIP
+      - name: Chrome build folder
         run: |
-          echo "OVERRIDDEN_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
-
-      - name: Debug version
-        run: echo "Using version: ${{ steps.override.outputs.OVERRIDDEN_VERSION || steps.override-real.outputs.OVERRIDDEN_VERSION }}"
-
+          cp manifest-chrome.json manifest.json
+          mkdir -p dist/chrome
+          rsync -av --exclude manifest-chrome.json --exclude manifest-firefox.json . dist/chrome/
       - name: Zip Chrome extension
         run: |
-          VERSION="${{ steps.override.outputs.OVERRIDDEN_VERSION || steps.override-real.outputs.OVERRIDDEN_VERSION }}"
-          mkdir -p build/chrome
-          rsync -av --exclude 'build' ./ build/chrome/
-          cd build/chrome
-          zip -r "chrome-${VERSION}.zip" ./*
-          mv *.zip ../
+          cd dist/chrome
+          zip -r ../extension-chrome.zip .
 
-      ##########################
-      # Firefox Build & Sign
-      ##########################
-
-      - name: Copy Firefox manifest
-        run: cp manifest-firefox.json manifest.json
-
+      # FIREFOX ZIP
+      - name: Firefox build folder
+        run: |
+          cp manifest-firefox.json manifest.json
+          mkdir -p dist/firefox
+          rsync -av --exclude manifest-firefox.json --exclude manifest-chrome.json . dist/firefox/
       - name: Zip Firefox extension
         run: |
-          VERSION="${{ steps.override.outputs.OVERRIDDEN_VERSION || steps.override-real.outputs.OVERRIDDEN_VERSION }}"
-          mkdir -p build/firefox
-          rsync -av --exclude 'build' ./ build/firefox/
-          cd build/firefox
-          zip -r "firefox-${VERSION}.zip" ./*
-          mv *.zip ../
+          cd dist/firefox
+          zip -r ../extension-firefox.zip .
 
-      - name: Sign Firefox extension (skip if dry run or no API keys)
-        if: ${{ github.event.inputs.dry_run != 'true' && secrets.AMO_API_KEY != '' && secrets.AMO_API_SECRET != '' }}
+      # SIGNING
+      - name: Sign Firefox extension
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
         run: |
-          VERSION="${{ steps.override.outputs.OVERRIDDEN_VERSION || steps.override-real.outputs.OVERRIDDEN_VERSION }}"
-          web-ext sign \
-            --source-dir=build/firefox \
-            --api-key="$FIREFOX_API_KEY" \
-            --api-secret="$FIREFOX_API_SECRET" \
-            --artifacts-dir=build/signed \
-            --channel=listed
+          npm install -g web-ext@latest
+          cd dist/firefox
+          web-ext sign --api-key="$AMO_API_KEY" --api-secret="$AMO_API_SECRET" --version=${{ steps.names.outputs.FIREFOX_SIGN_VERSION }} --source-dir=. --artifacts-dir=.
+          cd ..
+          cp firefox/*.xpi extension-firefox-signed.xpi
 
-      ##########################
-      # Debug build folder contents
-      ##########################
-      - name: List build directory recursively
-        run: ls -R build
-
-      ##########################
-      # Git Tag (only if real)
-      ##########################
-
-      - name: Commit and tag release
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        run: |
-          git add manifest.json
-          git commit -m "chore: release v${{ steps.version.outputs.VERSION }}" || echo "Nothing to commit"
-          git tag "v${{ steps.version.outputs.VERSION }}"
-          git push origin HEAD
-          git push origin "v${{ steps.version.outputs.VERSION }}"
-
-      ##########################
-      # Changelog and Contributors
-      ##########################
-
-      - name: Get last tag
-        id: last_tag
-        run: |
-          TAG=$(git tag --sort=-creatordate | grep -v "${{ steps.override.outputs.OVERRIDDEN_VERSION || steps.override-real.outputs.OVERRIDDEN_VERSION }}" | head -n 1)
-          echo "LAST_TAG=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Generate changelog
+      # GENERATE CHANGELOG
+      - name: Generate changelog since last release
         id: changelog
         run: |
-          if [ -n "${{ steps.last_tag.outputs.LAST_TAG }}" ]; then
-            git log "${{ steps.last_tag.outputs.LAST_TAG }}..HEAD" --pretty=format:"- %s" > changes.txt
+          git fetch --tags
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo '')
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
           else
-            git log --pretty=format:"- %s" > changes.txt
+            RANGE=""
           fi
-          echo "CHANGES=$(cat changes.txt)" >> $GITHUB_OUTPUT
-
-      - name: List contributors
-        id: contributors
-        run: |
-          if [ -n "${{ steps.last_tag.outputs.LAST_TAG }}" ]; then
-            CONTRIBUTORS=$(git log "${{ steps.last_tag.outputs.LAST_TAG }}..HEAD" --format='%aN' | sort -u | paste -sd ", " -)
+          echo "Changelog for release ${{ steps.names.outputs.RELEASE_TAG }}" > release-notes.md
+          if [ -n "$RANGE" ]; then
+            git log $RANGE --pretty=format:"* %s (%an)" --no-merges >> release-notes.md
           else
-            CONTRIBUTORS=$(git log --format='%aN' | sort -u | paste -sd ", " -)
+            git log --pretty=format:"* %s (%an)" --no-merges >> release-notes.md
           fi
-          echo "CONTRIBUTORS=$CONTRIBUTORS" >> $GITHUB_OUTPUT
 
-      - name: Print release info (dry run simulation)
+      # DRY RUN OUTPUT
+      - name: Dry run summary
+        if: ${{ github.event.inputs.dry_run == 'true' }}
         run: |
-          VERSION="${{ steps.override.outputs.OVERRIDDEN_VERSION || steps.override-real.outputs.OVERRIDDEN_VERSION }}"
-          echo "📝 Simulated Release v${VERSION}"
-          echo ""
-          echo "🔄 Changes:"
-          echo "${{ steps.changelog.outputs.CHANGES }}"
-          echo ""
-          echo "👥 Contributors:"
-          echo "${{ steps.contributors.outputs.CONTRIBUTORS }}"
+          echo "Chrome zip:"
+          ls -lh dist/extension-chrome.zip
+          echo "Firefox zip:"
+          ls -lh dist/extension-firefox.zip
+          echo "Signed Firefox XPI:"
+          ls -lh dist/extension-firefox-signed.xpi
+          echo "Release notes preview:"
+          cat release-notes.md
 
-      ##########################
-      # Create GitHub Release
-      ##########################
-
-      - name: Create GitHub Release
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        uses: softprops/action-gh-release@v1
+      # CREATE RELEASE
+      - name: Create Release
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          name: Release v${{ steps.version.outputs.VERSION }}
-          body: |
-            ## Changes
-            ${{ steps.changelog.outputs.CHANGES }}
-
-            **Contributors:** ${{ steps.contributors.outputs.CONTRIBUTORS }}
+          tag_name: ${{ steps.names.outputs.RELEASE_TAG }}
+          name: ${{ steps.names.outputs.RELEASE_TAG }}
+          body_path: release-notes.md
           files: |
-            build/**/*.zip
-            build/signed/*.xpi
+            dist/extension-chrome.zip
+            dist/extension-firefox.zip
+            dist/extension-firefox-signed.xpi
 
-      ##########################
-      # Upload artifacts (dry run or real)
-      ##########################
-
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-build
-          path: |
-            build/**/*.zip
-            build/**/*.xpi
