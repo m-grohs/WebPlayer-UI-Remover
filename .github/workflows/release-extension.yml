@@ -52,18 +52,18 @@ jobs:
 
       - name: Override version in dry run
         if: inputs.dry_run == 'true'
+        id: override
         run: |
           VERSION=$(jq -r '.version' manifest.json)
           FAKE_VERSION="${VERSION}-test"
           jq --arg v "$FAKE_VERSION" '.version = $v' manifest.json > manifest.json.tmp
           mv manifest.json.tmp manifest.json
           echo "OVERRIDDEN_VERSION=$FAKE_VERSION" >> $GITHUB_OUTPUT
-        id: override
 
       - name: Use real version if not overridden
         if: inputs.dry_run != 'true'
-        run: echo "OVERRIDDEN_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
         id: override-real
+        run: echo "OVERRIDDEN_VERSION=${{ steps.version.outputs.VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Debug version
         run: echo "Using version: ${{ steps.override.outputs.OVERRIDDEN_VERSION }}"
