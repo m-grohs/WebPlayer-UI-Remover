@@ -1,4 +1,4 @@
-name: new test
+name: Release Extension
 
 on:
   workflow_dispatch:
@@ -8,6 +8,9 @@ on:
         required: true
         type: boolean
         default: false
+
+permissions:
+  contents: write  # Required for creating releases
 
 jobs:
   build-and-release:
