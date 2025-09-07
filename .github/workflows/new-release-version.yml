@@ -1,0 +1,135 @@
+name: new test
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry run (no release)'
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(jq -r .version manifest-chrome.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version detected: $VERSION"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          
+          if [ "$LATEST_TAG" = "none" ]; then
+            # If no tags exist, get all commits
+            CHANGES=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            # Get commits since last tag
+            CHANGES=$(git log --pretty=format:"- %s (%h)" ${LATEST_TAG}..HEAD --no-merges)
+          fi
+          
+          # Escape multiline output for GitHub Actions
+          CHANGES="${CHANGES//'%'/'%25'}"
+          CHANGES="${CHANGES//$'\n'/'%0A'}"
+          CHANGES="${CHANGES//$'\r'/'%0D'}"
+          
+          echo "changes=$CHANGES" >> "$GITHUB_OUTPUT"
+
+      - name: Get contributors
+        id: contributors
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          if [ "$LATEST_TAG" = "none" ]; then
+            CONTRIBUTORS=$(git log --pretty=format:"%an" | sort -u | tr '\n' ', ' | sed 's/,$//')
+          else
+            CONTRIBUTORS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%an" | sort -u | tr '\n' ', ' | sed 's/,$//')
+          fi
+          echo "contributors=$CONTRIBUTORS" >> "$GITHUB_OUTPUT"
+
+      - name: Create build directory
+        run: mkdir -p build
+
+      - name: Build Chrome extension
+        run: |
+          cp manifest-chrome.json manifest.json
+          zip -r "build/WebPlayer-UI-Remover-chrome-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip" \
+            * -x "manifest-chrome.json" "manifest-firefox.json" "build/*" ".git*" ".github/*"
+
+      - name: Build Firefox extension
+        run: |
+          cp manifest-firefox.json manifest.json
+          zip -r "build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip" \
+            * -x "manifest-chrome.json" "manifest-firefox.json" "build/*" ".git*" ".github/*"
+
+      - name: Prepare for signing
+        run: |
+          mkdir -p web-ext-artifacts
+          mkdir -p build
+
+      # Add a step to create a unique version suffix for dry runs
+      - name: Generate version suffix
+        if: ${{ inputs.dry-run }}
+        id: version_suffix
+        run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo "suffix=-build.$TIMESTAMP" >> "$GITHUB_OUTPUT"
+          # Update manifest with new version
+          VERSION=$(jq -r .version manifest-firefox.json)
+          NEW_VERSION="${VERSION}-build.${TIMESTAMP}"
+          cp manifest-firefox.json manifest.json
+          jq --arg version "$NEW_VERSION" '.version = $version' manifest.json > temp.json && mv temp.json manifest.json
+          echo "Using version: $NEW_VERSION"
+
+      - name: Sign Firefox extension with web-ext
+        uses: kewisch/action-web-ext@v1
+        with:
+          cmd: sign
+          source: "build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip"
+          channel: unlisted
+          apiKey: ${{ secrets.AMO_API_KEY }}
+          apiSecret: ${{ secrets.AMO_API_SECRET }}
+          artifacts: web-ext-artifacts
+
+      - name: Move signed extension
+        run: |
+          # Find the .xpi file and move it with the correct name
+          XPI_FILE=$(find web-ext-artifacts -name "*.xpi" -type f)
+          if [ -n "$XPI_FILE" ]; then
+            mv "$XPI_FILE" "build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.xpi"
+          else
+            echo "No .xpi file found in web-ext-artifacts directory"
+            exit 1
+          fi
+
+      - name: Create Release
+        if: ${{ !inputs.dry-run }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes
+            ${{ steps.changelog.outputs.changes }}
+            
+            **Contributors:** ${{ steps.contributors.outputs.contributors }}
+          files: |
+            build/WebPlayer-UI-Remover-chrome-v${{ steps.version.outputs.version }}.zip
+            build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}.zip
+            build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}.xpi
+          draft: false
+          prerelease: false
