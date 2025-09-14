@@ -37,33 +37,27 @@ jobs:
         run: |
           # Get latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-      
+              
           if [ -z "$LATEST_TAG" ]; then
             LOG_RANGE=""
           else
             LOG_RANGE="${LATEST_TAG}..HEAD"
           fi
-      
-          # Get all commits (no merges) and group by prefix
-          git log $LOG_RANGE --pretty=format:"%s (%h)" --no-merges | while read -r line; do
-            PREFIX=$(echo "$line" | grep -oE '^[a-zA-Z]+' || echo "other")
-            echo "$PREFIX|||$line"
-          done | sort > raw_changelog.txt
-      
-          # Now group and format nicely
-          echo "## Changelog" > formatted_changelog.txt
-          for PREFIX in add update fix remove del delete test other; do
-            MATCHES=$(grep "^$PREFIX|||" raw_changelog.txt | cut -d"|" -f4-)
-            if [ -n "$MATCHES" ]; then
-              echo -e "\n### ${PREFIX^}" >> formatted_changelog.txt
-              echo "$MATCHES" | sed 's/^/- /' >> formatted_changelog.txt
-            fi
-          done
-      
+              
+          # Get all commits (no merges), truncate subject to 72 chars, and format
+          echo "Changes:" > formatted_changelog.txt
+          echo "" >> formatted_changelog.txt
+          git log $LOG_RANGE --pretty=format:"- %s (%h)" --no-merges \
+            | while read -r line; do
+                MSG=$(echo "$line" | sed -E 's/(.{72}).*/\1.../')
+                echo "$MSG"
+              done >> formatted_changelog.txt
+              
           # Output for GitHub
           echo "changes<<EOF" >> $GITHUB_OUTPUT
           cat formatted_changelog.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
 
       - name: Create build directory
         run: mkdir -p build
@@ -71,13 +65,13 @@ jobs:
       - name: Build Chrome extension
         run: |
           cp manifest-chrome.json manifest.json
-          zip -r "build/WebPlayer-UI-Remover-chrome-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip" \
+          zip -r "build/ZenStream-Chrome-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip" \
             * -x "manifest-chrome.json" "manifest-firefox.json" "build/*" ".git*" ".github/*"
 
       - name: Build Firefox extension
         run: |
           cp manifest-firefox.json manifest.json
-          zip -r "build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip" \
+          zip -r "build/ZenStream-Firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip" \
             * -x "manifest-chrome.json" "manifest-firefox.json" "build/*" ".git*" ".github/*"
 
       - name: Prepare for signing
@@ -103,7 +97,7 @@ jobs:
         uses: kewisch/action-web-ext@v1
         with:
           cmd: sign
-          source: "build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip"
+          source: "build/ZenStream-Firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip"
           channel: unlisted
           apiKey: ${{ secrets.AMO_API_KEY }}
           apiSecret: ${{ secrets.AMO_API_SECRET }}
@@ -114,7 +108,7 @@ jobs:
           # Find the .xpi file and move it with the correct name
           XPI_FILE=$(find web-ext-artifacts -name "*.xpi" -type f)
           if [ -n "$XPI_FILE" ]; then
-            mv "$XPI_FILE" "build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.xpi"
+            mv "$XPI_FILE" "build/ZenStream-Firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.xpi"
           else
             echo "No .xpi file found in web-ext-artifacts directory"
             exit 1
@@ -127,8 +121,8 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
           files: |
-            build/WebPlayer-UI-Remover-chrome-v${{ steps.version.outputs.version }}.zip
-            build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}.zip
-            build/WebPlayer-UI-Remover-firefox-v${{ steps.version.outputs.version }}.xpi
+            build/ZenStream-Chrome-v${{ steps.version.outputs.version }}.zip
+            build/ZenStream-Firefox-v${{ steps.version.outputs.version }}.zip
+            build/ZenStream-Firefox-v${{ steps.version.outputs.version }}.xpi
           draft: false
           prerelease: false
