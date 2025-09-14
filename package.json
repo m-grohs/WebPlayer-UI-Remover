@@ -1,13 +1,13 @@
 {
-	"name": "web-player-ui-remover",
-	"version": "0.5.2",
-	"description": "One Click Extension for removing WebPlayer UIs of specific Streaming Sites for an undisturbed experience",
+	"name": "zenstream",
+	"version": "1.0.0",
+	"description": "ZenStream is an Extension that removes distracting Web Player Interfaces on specific streaming Sites, creating a clean and immersive viewing experience.",
 	"main": "./src/bg.js",
 	"scripts": {},
 	"author": "m-grohs",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/m-grohs/WPUIREM.git"
+		"url": "git+https://github.com/m-grohs/ZenStream.git"
 	}
 }
