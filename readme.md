@@ -4,7 +4,7 @@ ZenStream is an Extension that removes distracting Web Player Interfaces on spec
 
 ### Currently Supporting:
 
--   Amazon
+-   Amazon [^1]
 -   Disney+
 -   Netflix
 -   Wowtv.de
@@ -16,7 +16,7 @@ Reload the Site to Undo this.
 
 ### How to add to the Browser
 
-Download the [Release](https://github.com/m-grohs/ZenStream/releases) for your Browser. [^1]
+Download the [Release](https://github.com/m-grohs/ZenStream/releases) for your Browser. [^2]
 
 -   Firefox (\*.xpi)
 
@@ -91,6 +91,8 @@ Git Clone:
 
 <small>© 2025 [m-grohs](https://github.com/m-grohs)
 
-[^1]: There is no published Version in the Chrome Web Store nor is it planned at this point in time.
+[^1]: Occasionally Streaming Sites will Re-Obfuscate their Classes and as such would break this Extension. Steps to fix this will be taken as soon as Access to those Sites is Reestablished. Creating an Issue for Notification of such Event is appreciated.
+
+[^2]: There is no published Version in the Chrome Web Store nor is it planned at this point in time.
 
 </small>
