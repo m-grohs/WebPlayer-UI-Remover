@@ -98,7 +98,7 @@ jobs:
         with:
           cmd: sign
           source: "build/ZenStream-Firefox-v${{ steps.version.outputs.version }}${{ inputs.dry-run && '-temp' || '' }}.zip"
-          channel: unlisted
+          channel: listed
           apiKey: ${{ secrets.AMO_API_KEY }}
           apiSecret: ${{ secrets.AMO_API_SECRET }}
           artifacts: web-ext-artifacts
