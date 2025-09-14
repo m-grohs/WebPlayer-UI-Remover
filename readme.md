@@ -1,31 +1,22 @@
-## WebPlayer UI Remover
+## ZenStream
 
-This Extension removes the WebPlayer UI for specific Streaming Services to ensure an undisturbed viewer experience.
-
-Occasionally Streaming Sites Re-Obfuscate their Code which can lead to breaking this Extension on them. Fixes for that will roll out the moment i can get to them.
-
-As of September 2025
-Extension Status: Working
+ZenStream is an Extension that removes distracting Web Player Interfaces on specific streaming Sites, creating a clean and immersive viewing experience.
 
 ### Currently Supporting:
 
 -   Amazon
--   Netflix
 -   Disney+
+-   Netflix
 -   Wowtv.de
-
----
 
 ### How to use
 
-Simply press the Extension Action Button on the stream to delete the WebPlayer UI elements.
-(You need to reload the Site to reset)
-
----
+Press the Extension Button on supported Stream Sites to remove the Stream Interface.
+Reload the Site to Undo this.
 
 ### How to add to the Browser
 
-Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Browser. [^1]
+Download the [Release](https://github.com/m-grohs/ZenStream/releases) for your Browser. [^1]
 
 -   Firefox (\*.xpi)
 
@@ -53,7 +44,8 @@ Download the [Release](https://github.com/m-grohs/WPUIREM/releases) for your Bro
     Load Unpacked and Pick the Folder where you unziped the Extension
     ```
 
-No other Browser support available atm (might work on Edge but is untested).
+    <small>No other Browser support available. 
+    (might work on other Firefox/Chrome base Browser but has not been tested.)</small>
 
 ---
 
@@ -97,6 +89,8 @@ Git Clone:
 
 ---
 
-### [LICENSE]()
+<small>© 2025 [m-grohs](https://github.com/m-grohs)
 
-[^1]: There is no Published Version in any Web Store nor is it planned at this point in time.
+[^1]: There is no published Version in the Chrome Web Store nor is it planned at this point in time.
+
+</small>
