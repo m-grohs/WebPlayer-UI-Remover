@@ -16,7 +16,10 @@
 	"permissions": ["activeTab", "scripting"],
 	"browser_specific_settings": {
 		"gecko": {
-			"id": "{ZenStream@m-grohs}"
+			"id": "ZenStream@m-grohs",
+			"data_collection_permissions": {
+				"required": ["none"]
+			}
 		}
 	}
 }

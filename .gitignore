@@ -5,3 +5,4 @@ TODO
 /manifest.json
 metadata.json
 web-ext-artifacts
+.amo-upload-uuid
